@@ -1,13 +1,15 @@
 package me.ifmo.ticket_service.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
 import me.ifmo.ticket_service.domain.enums.EventType;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 
 @Entity
@@ -25,17 +27,18 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "name")
+    @NotEmpty
+    @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "date")
-    private LocalDateTime date;
+    private ZonedDateTime date;
 
-    @Builder.Default
+    @NotNull
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "event_type", nullable = false, columnDefinition = "event_type")
-    private EventType type;
+    private EventType eventType;
 
     @Override
     public boolean equals(Object object) {
