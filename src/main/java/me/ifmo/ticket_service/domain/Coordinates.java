@@ -43,8 +43,8 @@ public class Coordinates {
     public boolean equals(Object object) {
         if (this == object) return true;
         if (object == null || getClass() != object.getClass()) return false;
-        Coordinates that = (Coordinates) object;
-        return getId() != null && Objects.equals(getId(), that.getId());
+        Coordinates coordinates = (Coordinates) object;
+        return getId() != null && Objects.equals(getId(), coordinates.getId());
     }
 
     @Override
