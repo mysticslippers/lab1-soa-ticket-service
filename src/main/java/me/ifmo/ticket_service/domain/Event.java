@@ -38,7 +38,7 @@ public class Event {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(name = "event_type", nullable = false, columnDefinition = "event_type")
-    private EventType eventType;
+    private EventType type;
 
     @Override
     public boolean equals(Object object) {
