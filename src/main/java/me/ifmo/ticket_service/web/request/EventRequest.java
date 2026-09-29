@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import me.ifmo.ticket_service.domain.enums.EventType;
 
 public record EventRequest(
-        @NotNull
         @NotEmpty
         String name,
 
