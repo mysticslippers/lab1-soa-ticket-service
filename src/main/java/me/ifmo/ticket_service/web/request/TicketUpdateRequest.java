@@ -1,6 +1,5 @@
 package me.ifmo.ticket_service.web.request;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -12,8 +11,8 @@ public record TicketUpdateRequest(
         String name,
 
         @NotNull
-        @Valid
-        CoordinatesUpdateRequest coordinates,
+        @Positive
+        Integer coordinatesId,
 
         @NotNull
         @Positive
