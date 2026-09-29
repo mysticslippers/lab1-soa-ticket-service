@@ -12,13 +12,14 @@ import org.mapstruct.MappingTarget;
 public interface TicketMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "creationDate", ignore = true)
+    @Mapping(target = "coordinates", ignore = true)
     @Mapping(target = "event", ignore = true)
     Ticket toEntity(TicketCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "creationDate", ignore = true)
+    @Mapping(target = "coordinates", ignore = true)
     @Mapping(target = "event", ignore = true)
-    @Mapping(target = "coordinates", source = "coordinates", qualifiedByName = "newCoordinates")
     void updateEntity(TicketUpdateRequest request, @MappingTarget Ticket ticket);
 
     TicketResponse toResponse(Ticket ticket);
