@@ -13,7 +13,7 @@ public record TicketCreateRequest(
 
         @NotNull
         @Valid
-        CoordinatesRequest coordinates,
+        CoordinatesCreateRequest coordinates,
 
         @NotNull
         @Positive
