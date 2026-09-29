@@ -7,16 +7,11 @@ import me.ifmo.ticket_service.web.response.CoordinatesResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring")
 public interface CoordinatesMapper {
     @Mapping(target = "id", ignore = true)
     Coordinates toEntity(CoordinatesCreateRequest request);
-
-    @Named("newCoordinates")
-    @Mapping(target = "id", ignore = true)
-    Coordinates toNewEntity(CoordinatesUpdateRequest request);
 
     @Mapping(target = "id", ignore = true)
     void updateEntity(CoordinatesUpdateRequest request, @MappingTarget Coordinates coordinates);
