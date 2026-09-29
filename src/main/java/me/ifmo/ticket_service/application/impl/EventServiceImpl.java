@@ -5,6 +5,7 @@ import me.ifmo.ticket_service.application.EventService;
 import me.ifmo.ticket_service.domain.Event;
 import me.ifmo.ticket_service.mappers.EventMapper;
 import me.ifmo.ticket_service.persistence.EventRepository;
+import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.request.EventCreateRequest;
 import me.ifmo.ticket_service.web.request.EventUpdateRequest;
 import me.ifmo.ticket_service.web.response.EventResponse;
@@ -35,30 +36,35 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public EventResponse getById(Integer id) {
-        Event event = repository.findById(id).orElse(null);
+        Event event = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Event with id '%s' not found".formatted(id)));
 
         return mapper.toResponse(event);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventResponse> getAll() {
-        return repository.findAll().stream()
-                .map(mapper::toResponse)
-                .toList();
+        return repository.findAll().stream().map(mapper::toResponse).toList();
     }
 
     @Override
     @Transactional
     public EventResponse update(Integer id, EventUpdateRequest request) {
-        Event event = findEvent(id);
+        Event event = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Event with id '%s' not found".formatted(id)));
+
         mapper.updateEntity(request, event);
-        return mapper.toResponse(repository.save(event));
+        Event saved = repository.save(event);
+        return mapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public void delete(Integer id) {
-        Event event = findEvent(id);
+        Event event = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Event with id '%s' not found".formatted(id)));
+
         try {
             repository.delete(event);
             repository.flush();
@@ -69,13 +75,5 @@ public class EventServiceImpl implements EventService {
                     exception
             );
         }
-    }
-
-    private Event findEvent(Integer id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Событие с id " + id + " не найдено"
-                ));
     }
 }
