@@ -13,7 +13,7 @@ public record TicketUpdateRequest(
 
         @NotNull
         @Valid
-        CoordinatesRequest coordinates,
+        CoordinatesUpdateRequest coordinates,
 
         @NotNull
         @Positive
