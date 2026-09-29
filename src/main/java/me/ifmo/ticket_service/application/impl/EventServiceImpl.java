@@ -18,27 +18,32 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
-    private final EventRepository eventRepository;
-    private final EventMapper eventMapper;
+
+    private final EventRepository repository;
+    private final EventMapper mapper;
 
     @Override
     @Transactional
     public EventResponse create(EventCreateRequest request) {
-        Event event = eventMapper.toEntity(request);
-        return eventMapper.toResponse(eventRepository.save(event));
+        Event event = mapper.toEntity(request);
+
+        Event saved = repository.save(event);
+        return mapper.toResponse(saved);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventResponse getById(Integer id) {
-        return eventMapper.toResponse(findEvent(id));
+        Event event = repository.findById(id).orElse(null);
+
+        return mapper.toResponse(event);
     }
 
     @Override
     public List<EventResponse> getAll() {
-        return eventRepository.findAll().stream()
-                .map(eventMapper::toResponse)
+        return repository.findAll().stream()
+                .map(mapper::toResponse)
                 .toList();
     }
 
@@ -46,8 +51,8 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventResponse update(Integer id, EventUpdateRequest request) {
         Event event = findEvent(id);
-        eventMapper.updateEntity(request, event);
-        return eventMapper.toResponse(eventRepository.save(event));
+        mapper.updateEntity(request, event);
+        return mapper.toResponse(repository.save(event));
     }
 
     @Override
@@ -55,8 +60,8 @@ public class EventServiceImpl implements EventService {
     public void delete(Integer id) {
         Event event = findEvent(id);
         try {
-            eventRepository.delete(event);
-            eventRepository.flush();
+            repository.delete(event);
+            repository.flush();
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -67,7 +72,7 @@ public class EventServiceImpl implements EventService {
     }
 
     private Event findEvent(Integer id) {
-        return eventRepository.findById(id)
+        return repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Событие с id " + id + " не найдено"
