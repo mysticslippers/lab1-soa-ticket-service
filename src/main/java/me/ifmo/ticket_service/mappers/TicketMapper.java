@@ -18,6 +18,7 @@ public interface TicketMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "creationDate", ignore = true)
     @Mapping(target = "event", ignore = true)
+    @Mapping(target = "coordinates", source = "coordinates", qualifiedByName = "newCoordinates")
     void updateEntity(TicketUpdateRequest request, @MappingTarget Ticket ticket);
 
     TicketResponse toResponse(Ticket ticket);
