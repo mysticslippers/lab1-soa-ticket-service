@@ -66,7 +66,7 @@ public class EventServiceImpl implements EventService {
                 () -> new ResourceNotFoundException("Event with id '%s' not found".formatted(id)));
 
         if (ticketRepository.existsByEvent_Id(id))
-            throw new ResourceConflictException("Нельзя удалить событие: на него ссылаются билеты");
+            throw new ResourceConflictException("Event with id '%s' cannot be deleted because tickets reference it".formatted(id));
 
         repository.delete(existing);
     }
