@@ -49,7 +49,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception) {
         log.error("Unexpected request failure", exception);
-        return respond(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Внутренняя ошибка сервера");
+        return respond(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Internal server error");
     }
 
     @Override
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
             HttpStatusCode validationStatus = requestBody ? UNPROCESSABLE_CONTENT : HttpStatus.BAD_REQUEST;
             String code = requestBody ? "VALIDATION_ERROR" : "INVALID_PARAMETER";
-            String message = requestBody ? "Некорректные поля запроса" : "Некорректные параметры запроса";
+            String message = requestBody ? "Invalid request body fields" : "Invalid request parameters";
 
             return super.handleExceptionInternal(exception, error(validationStatus, code, message, validationDetails(validationException)),
                     headers, validationStatus, request);
@@ -82,7 +82,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private static String messageOrDefault(ObjectError error) {
-        return error.getDefaultMessage() != null ? error.getDefaultMessage() : "Некорректное значение";
+        return error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value";
     }
 
     private static String errorCode(Exception exception, HttpStatusCode status) {
@@ -107,23 +107,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static String errorMessage(Exception exception, HttpStatusCode status) {
         if (status.is5xxServerError())
-            return "Внутренняя ошибка сервера";
+            return "Internal server error";
 
         if (exception instanceof ResponseStatusException responseStatusException && responseStatusException.getReason() != null && !responseStatusException.getReason().isBlank())
             return responseStatusException.getReason();
 
         if (exception instanceof HttpMessageNotReadableException)
-            return "Некорректное или отсутствующее тело запроса";
+            return "Malformed or missing request body";
 
         return switch (status.value()) {
-            case 400 -> "Некорректные параметры запроса";
-            case 404 -> "Ресурс не найден";
-            case 405 -> "HTTP-метод не поддерживается";
-            case 406 -> "Невозможно вернуть запрошенный формат ответа";
-            case 409 -> "Конфликт состояния ресурса";
-            case 415 -> "Неподдерживаемый формат тела запроса";
-            case 422 -> "Некорректные данные запроса";
-            default -> "Ошибка обработки запроса";
+            case 400 -> "Invalid request parameters";
+            case 404 -> "Resource not found";
+            case 405 -> "HTTP method not allowed";
+            case 406 -> "Cannot produce the requested response format";
+            case 409 -> "Resource state conflict";
+            case 415 -> "Unsupported request content type";
+            case 422 -> "Invalid request data";
+            default -> "Request processing error";
         };
     }
 
