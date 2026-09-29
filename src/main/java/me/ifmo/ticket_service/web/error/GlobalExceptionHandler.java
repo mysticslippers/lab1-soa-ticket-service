@@ -22,7 +22,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.time.Instant;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -132,6 +132,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private static ApiErrorResponse error(HttpStatusCode status, String code, String message, Map<String, String> details) {
-        return new ApiErrorResponse(status.value(), code, message, details, Instant.now());
+        return new ApiErrorResponse(status.value(), code, message, details, new Date());
     }
 }
