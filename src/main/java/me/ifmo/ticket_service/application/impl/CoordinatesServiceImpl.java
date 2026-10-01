@@ -6,6 +6,7 @@ import me.ifmo.ticket_service.domain.Coordinates;
 import me.ifmo.ticket_service.mappers.CoordinatesMapper;
 import me.ifmo.ticket_service.persistence.CoordinatesRepository;
 import me.ifmo.ticket_service.persistence.TicketRepository;
+import me.ifmo.ticket_service.web.error.exceptions.ResourceConflictException;
 import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.request.CoordinatesCreateRequest;
 import me.ifmo.ticket_service.web.request.CoordinatesUpdateRequest;
@@ -56,5 +57,17 @@ public class CoordinatesServiceImpl implements CoordinatesService {
         mapper.updateEntity(request, coordinates);
         Coordinates saved = repository.save(coordinates);
         return mapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Integer id){
+        Coordinates existing = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Coordinates with id '%s' not found".formatted(id)));
+
+        if(ticketRepository.existsByCoordinates_Id(id))
+            throw new ResourceConflictException("Coordinates with id '%s' cannot be deleted because tickets reference it".formatted(id));
+
+        repository.delete(existing);
     }
 }
