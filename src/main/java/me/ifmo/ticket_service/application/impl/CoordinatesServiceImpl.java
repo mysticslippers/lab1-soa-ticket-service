@@ -12,6 +12,8 @@ import me.ifmo.ticket_service.web.response.CoordinatesResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CoordinatesServiceImpl implements CoordinatesService {
@@ -36,5 +38,11 @@ public class CoordinatesServiceImpl implements CoordinatesService {
                 () -> new ResourceNotFoundException("Coordinates with id '%s' not found".formatted(id)));
 
         return mapper.toResponse(coordinates);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoordinatesResponse> getAll() {
+        return repository.findAll().stream().map(mapper::toResponse).toList();
     }
 }
