@@ -6,19 +6,24 @@ import me.ifmo.ticket_service.web.error.exceptions.ResourceConflictException;
 import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.response.ApiErrorResponse;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
+import org.springframework.validation.method.ParameterErrors;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -61,7 +66,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             String code = requestBody ? "VALIDATION_ERROR" : "INVALID_PARAMETER";
             String message = requestBody ? "Invalid request body fields" : "Invalid request parameters";
 
-            return super.handleExceptionInternal(exception, error(validationStatus, code, message, validationDetails(validationException)),
+            return super.handleExceptionInternal(exception, error(validationStatus, code, message, validationDetails(validationException.getBindingResult())),
+                    headers, validationStatus, request);
+        }
+
+        if (exception instanceof HandlerMethodValidationException validationException && !validationException.isForReturnValue()) {
+            boolean requestBodyOnly = !validationException.getParameterValidationResults().isEmpty()
+                    && validationException.getCrossParameterValidationResults().isEmpty()
+                    && validationException.getParameterValidationResults().stream()
+                    .allMatch(result -> result.getMethodParameter().hasParameterAnnotation(RequestBody.class));
+
+            HttpStatusCode validationStatus = requestBodyOnly ? UNPROCESSABLE_CONTENT : HttpStatus.BAD_REQUEST;
+            String code = requestBodyOnly ? "VALIDATION_ERROR" : "INVALID_PARAMETER";
+            String message = requestBodyOnly ? "Invalid request body fields" : "Invalid request parameters";
+
+            return super.handleExceptionInternal(exception, error(validationStatus, code, message, methodValidationDetails(validationException)),
                     headers, validationStatus, request);
         }
 
@@ -70,18 +89,35 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return super.handleExceptionInternal(exception, error(status, code, message, Map.of()), headers, status, request);
     }
 
-    private static Map<String, String> validationDetails(MethodArgumentNotValidException exception) {
+    private static Map<String, String> validationDetails(Errors errors) {
         Map<String, String> details = new LinkedHashMap<>();
-        for (FieldError fieldError : exception.getBindingResult().getFieldErrors())
+        for (FieldError fieldError : errors.getFieldErrors())
             details.merge(fieldError.getField(), messageOrDefault(fieldError), (first, next) -> first + "; " + next);
 
-        for (ObjectError objectError : exception.getBindingResult().getGlobalErrors())
+        for (ObjectError objectError : errors.getGlobalErrors())
             details.merge("_object", messageOrDefault(objectError), (first, next) -> first + "; " + next);
 
         return details;
     }
 
-    private static String messageOrDefault(ObjectError error) {
+    private static Map<String, String> methodValidationDetails(HandlerMethodValidationException exception) {
+        Map<String, String> details = new LinkedHashMap<>();
+        for (ParameterValidationResult result : exception.getParameterValidationResults()) {
+            if (result instanceof ParameterErrors errors) {
+                validationDetails(errors).forEach((field, message) -> details.merge(field, message, (first, next) -> first + "; " + next));
+            } else {
+                String parameter = result.getMethodParameter().getParameterName();
+                String key = parameter != null ? parameter : "parameter";
+                for (MessageSourceResolvable error : result.getResolvableErrors())
+                    details.merge(key, messageOrDefault(error), (first, next) -> first + "; " + next);
+            }
+        }
+        for (MessageSourceResolvable error : exception.getCrossParameterValidationResults())
+            details.merge("_request", messageOrDefault(error), (first, next) -> first + "; " + next);
+        return details;
+    }
+
+    private static String messageOrDefault(MessageSourceResolvable error) {
         return error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value";
     }
 
