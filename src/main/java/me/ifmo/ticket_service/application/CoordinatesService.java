@@ -13,7 +13,7 @@ public interface CoordinatesService {
 
     List<CoordinatesResponse> getAll();
 
-    CoordinatesResponse update(CoordinatesUpdateRequest request);
+    CoordinatesResponse update(Integer id, CoordinatesUpdateRequest request);
 
     void delete(Integer id);
 }
