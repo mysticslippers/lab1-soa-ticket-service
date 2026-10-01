@@ -6,6 +6,7 @@ import me.ifmo.ticket_service.domain.Coordinates;
 import me.ifmo.ticket_service.mappers.CoordinatesMapper;
 import me.ifmo.ticket_service.persistence.CoordinatesRepository;
 import me.ifmo.ticket_service.persistence.TicketRepository;
+import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.request.CoordinatesCreateRequest;
 import me.ifmo.ticket_service.web.response.CoordinatesResponse;
 import org.springframework.stereotype.Service;
@@ -26,5 +27,14 @@ public class CoordinatesServiceImpl implements CoordinatesService {
 
         Coordinates saved = repository.save(coordinates);
         return mapper.toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CoordinatesResponse getById(Integer id){
+        Coordinates coordinates = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Coordinates with id '%s' not found".formatted(id)));
+
+        return mapper.toResponse(coordinates);
     }
 }
