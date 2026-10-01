@@ -77,8 +77,10 @@ public class TicketController {
     })
     public ResponseEntity<TicketResponse> create(@Valid @RequestBody TicketCreateRequest request) {
         TicketResponse response = service.create(request);
+
         URI location = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{id}")
                 .buildAndExpand(response.id()).toUri();
+
         return ResponseEntity.created(location).body(response);
     }
 
@@ -108,7 +110,7 @@ public class TicketController {
             @RequestParam(defaultValue = "id,asc") String sort,
             @Parameter(hidden = true) @RequestParam MultiValueMap<String, String> parameters
     ) {
-        validateQuery(parameters);
+        validate(parameters);
         Page<TicketResponse> result = service.getAll(filter, page, size, sort);
         return new TicketPageResponse(result.getContent(), result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages());
@@ -192,12 +194,14 @@ public class TicketController {
         return new EventTicketCountResponse(eventId, service.countByEvent(eventId));
     }
 
-    private static void validateQuery(MultiValueMap<String, String> parameters) {
+    private static void validate(MultiValueMap<String, String> parameters) {
         parameters.forEach((name, values) -> {
             if (!QUERY_PARAMETERS.contains(name))
                 throw new InvalidRequestException("Unknown query parameter '%s'".formatted(name));
+
             if (values.size() != 1)
                 throw new InvalidRequestException("Query parameter '%s' must occur once".formatted(name));
+
             if (values.getFirst().isBlank() && !Set.of("name", "comment", "eventName").contains(name))
                 throw new InvalidRequestException("Query parameter '%s' must not be empty".formatted(name));
         });
