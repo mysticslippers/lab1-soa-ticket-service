@@ -29,10 +29,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -234,25 +237,30 @@ public class TicketServiceImpl implements TicketService {
         if (page < 0 || size < 1 || size > 100)
             throw new InvalidRequestException("Page must be non-negative and size must be between 1 and 100");
 
-        String[] parts = (value == null ? "id,asc" : value).split(",", -1);
-        if (parts.length < 1 || parts.length > 2)
-            throw new InvalidRequestException("Sort must use 'field,asc' or 'field,desc'");
+        List<Sort.Order> orders = new ArrayList<>();
+        Set<String> properties = new HashSet<>();
+        for (String item : (value == null ? "id,asc" : value).split(";", -1)) {
+            String[] parts = item.split(",", -1);
+            if (parts.length > 2 || parts[0].isBlank())
+                throw new InvalidRequestException("Sort must use 'field,asc;otherField,desc'");
 
-        String property = SORT_FIELDS.get(parts[0].trim());
-        if (property == null)
-            throw new InvalidRequestException("Unknown sort field '%s'".formatted(parts[0]));
+            String property = SORT_FIELDS.get(parts[0].trim());
+            if (property == null)
+                throw new InvalidRequestException("Unknown sort field '%s'".formatted(parts[0]));
+            if (!properties.add(property))
+                throw new InvalidRequestException("Duplicate sort field '%s'".formatted(parts[0].trim()));
 
-        String direction = parts.length == 2 ? parts[1].trim().toLowerCase(Locale.ROOT) : "asc";
-        Sort.Direction order = switch (direction) {
-            case "asc" -> Sort.Direction.ASC;
-            case "desc" -> Sort.Direction.DESC;
-            default -> throw new InvalidRequestException("Sort direction must be 'asc' or 'desc'");
-        };
+            String direction = parts.length == 2 ? parts[1].trim().toLowerCase(Locale.ROOT) : "asc";
+            Sort.Direction order = switch (direction) {
+                case "asc" -> Sort.Direction.ASC;
+                case "desc" -> Sort.Direction.DESC;
+                default -> throw new InvalidRequestException("Sort direction must be 'asc' or 'desc'");
+            };
+            orders.add(new Sort.Order(order, property));
+        }
+        if (!properties.contains("id"))
+            orders.add(Sort.Order.asc("id"));
 
-        Sort sort = Sort.by(order, property);
-        if (!property.equals("id"))
-            sort = sort.and(Sort.by("id"));
-
-        return PageRequest.of(page, size, sort);
+        return PageRequest.of(page, size, Sort.by(orders));
     }
 }
