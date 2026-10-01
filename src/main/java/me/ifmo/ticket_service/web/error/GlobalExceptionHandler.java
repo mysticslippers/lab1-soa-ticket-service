@@ -2,6 +2,8 @@ package me.ifmo.ticket_service.web.error;
 
 import lombok.extern.slf4j.Slf4j;
 import me.ifmo.ticket_service.web.error.exceptions.BusinessRuleViolationException;
+import me.ifmo.ticket_service.web.error.exceptions.InvalidRequestException;
+import me.ifmo.ticket_service.web.error.exceptions.RequestValidationException;
 import me.ifmo.ticket_service.web.error.exceptions.ResourceConflictException;
 import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.response.ApiErrorResponse;
@@ -49,6 +51,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessRuleViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleBusinessRule(BusinessRuleViolationException exception) {
         return respond(UNPROCESSABLE_CONTENT, "BUSINESS_RULE_VIOLATION", exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidRequest(InvalidRequestException exception) {
+        return respond(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage());
+    }
+
+    @ExceptionHandler(RequestValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleRequestValidation(RequestValidationException exception) {
+        return ResponseEntity.status(UNPROCESSABLE_CONTENT)
+                .body(error(UNPROCESSABLE_CONTENT, "VALIDATION_ERROR", exception.getMessage(), exception.getDetails()));
     }
 
     @ExceptionHandler(Exception.class)
