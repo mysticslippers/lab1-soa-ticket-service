@@ -120,12 +120,12 @@ public class TicketServiceImpl implements TicketService {
 
         for (Map.Entry<String, JsonNode> field : changes.properties()) {
             switch (field.getKey()) {
-                case "name" -> name = readString(field.getKey(), field.getValue());
-                case "coordinatesId" -> coordinatesId = readInteger(field.getKey(), field.getValue());
-                case "price" -> price = readInteger(field.getKey(), field.getValue());
-                case "comment" -> comment = readString(field.getKey(), field.getValue());
-                case "type" -> type = readType(field.getValue());
-                case "eventId" -> eventId = readInteger(field.getKey(), field.getValue());
+                case "name" -> name = parseString(field.getKey(), field.getValue());
+                case "coordinatesId" -> coordinatesId = parseInteger(field.getKey(), field.getValue());
+                case "price" -> price = parseInteger(field.getKey(), field.getValue());
+                case "comment" -> comment = parseString(field.getKey(), field.getValue());
+                case "type" -> type = parseType(field.getValue());
+                case "eventId" -> eventId = parseInteger(field.getKey(), field.getValue());
                 default -> throw new InvalidRequestException("Field '%s' cannot be updated".formatted(field.getKey()));
             }
         }
@@ -154,7 +154,8 @@ public class TicketServiceImpl implements TicketService {
             throw new ResourceNotFoundException("Event with id '%s' not found".formatted(eventId));
 
         List<Long> ids = repository.findIdsByEventId(eventId);
-        if (!ids.isEmpty()) repository.deleteAllByIdInBatch(ids);
+        if (!ids.isEmpty()) 
+            repository.deleteAllByIdInBatch(ids);
         return new TicketsByEventDeleteResponse(eventId, List.copyOf(ids), ids.size());
     }
 
@@ -197,7 +198,7 @@ public class TicketServiceImpl implements TicketService {
             throw new RequestValidationException(details);
     }
 
-    private static String readString(String field, JsonNode value) {
+    private static String parseString(String field, JsonNode value) {
         if (value.isNull())
             return null;
 
@@ -207,18 +208,21 @@ public class TicketServiceImpl implements TicketService {
         return value.stringValue();
     }
 
-    private static Integer readInteger(String field, JsonNode value) {
+    private static Integer parseInteger(String field, JsonNode value) {
         if (value.isNull())
             return null;
+        
         if (!value.isIntegralNumber() || !value.canConvertToInt())
-            throw new InvalidRequestException("Field '%s' must be a 32-bit integer or null".formatted(field));
+            throw new InvalidRequestException("Field '%s' must be an integer or null".formatted(field));
+        
         return value.asInt();
     }
 
-    private static TicketType readType(JsonNode value) {
-        String type = readString("type", value);
+    private static TicketType parseType(JsonNode value) {
+        String type = parseString("type", value);
         if (type == null)
             return null;
+
         try {
             return TicketType.valueOf(type);
         } catch (IllegalArgumentException exception) {
