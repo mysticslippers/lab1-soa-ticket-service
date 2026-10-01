@@ -8,6 +8,7 @@ import me.ifmo.ticket_service.persistence.CoordinatesRepository;
 import me.ifmo.ticket_service.persistence.TicketRepository;
 import me.ifmo.ticket_service.web.error.exceptions.ResourceNotFoundException;
 import me.ifmo.ticket_service.web.request.CoordinatesCreateRequest;
+import me.ifmo.ticket_service.web.request.CoordinatesUpdateRequest;
 import me.ifmo.ticket_service.web.response.CoordinatesResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,5 +45,16 @@ public class CoordinatesServiceImpl implements CoordinatesService {
     @Transactional(readOnly = true)
     public List<CoordinatesResponse> getAll() {
         return repository.findAll().stream().map(mapper::toResponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public CoordinatesResponse update(Integer id, CoordinatesUpdateRequest request){
+        Coordinates coordinates = repository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Coordinates with id '%s' not found".formatted(id)));
+
+        mapper.updateEntity(request, coordinates);
+        Coordinates saved = repository.save(coordinates);
+        return mapper.toResponse(saved);
     }
 }
