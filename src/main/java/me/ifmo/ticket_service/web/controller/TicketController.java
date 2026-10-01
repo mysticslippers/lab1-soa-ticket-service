@@ -98,7 +98,7 @@ public class TicketController {
 
     @GetMapping
     @ApiResponse(responseCode = "200", description = "Ticket page", useReturnTypeSchema = true)
-    @Operation(summary = "Get a page of tickets", description = "Filters use exact equality and are combined with AND. Dates use ISO-8601; creationDate is UTC. Sorting uses one field and direction.", responses = {
+    @Operation(summary = "Get a page of tickets", description = "Filters use exact equality and are combined with AND. Dates use ISO-8601; creationDate is UTC. Sort fields are applied in the specified order; id is added as a final tie-breaker unless explicitly supplied.", responses = {
             @ApiResponse(responseCode = "400", description = "Unknown, repeated or invalid filter, page, size or sort parameter",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
@@ -106,7 +106,7 @@ public class TicketController {
             @Valid @ModelAttribute @ParameterObject TicketFilterRequest filter,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @Parameter(description = "field,asc or field,desc. Fields: id, name, coordinatesId, x, y, creationDate, price, comment, type, eventId, eventName, eventDate, eventType")
+            @Parameter(description = "One or more field,direction pairs separated by semicolons. Direction is asc or desc; omitted direction means asc. Fields: id, name, coordinatesId, x, y, creationDate, price, comment, type, eventId, eventName, eventDate, eventType", example = "price,desc;name,asc")
             @RequestParam(defaultValue = "id,asc") String sort,
             @Parameter(hidden = true) @RequestParam MultiValueMap<String, String> parameters
     ) {
