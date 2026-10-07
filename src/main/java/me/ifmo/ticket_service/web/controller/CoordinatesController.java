@@ -1,6 +1,10 @@
 package me.ifmo.ticket_service.web.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -10,6 +14,7 @@ import me.ifmo.ticket_service.application.CoordinatesService;
 import me.ifmo.ticket_service.web.request.CoordinatesCreateRequest;
 import me.ifmo.ticket_service.web.request.CoordinatesUpdateRequest;
 import me.ifmo.ticket_service.web.response.CoordinatesResponse;
+import me.ifmo.ticket_service.web.response.ApiErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -36,9 +41,17 @@ public class CoordinatesController {
 
     private final CoordinatesService service;
 
-    @Operation(summary = "Create coordinates")
+    @Operation(summary = "Create coordinates", description = "Creates coordinates with a generated id. x and y are required finite numbers; x must be strictly greater than -999.", responses = {
+            @ApiResponse(responseCode = "400", description = "Malformed or missing JSON body",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "415", description = "Unsupported request content type",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "Request fields violate validation constraints",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ApiResponse(responseCode = "201", description = "Coordinates created")
+    @ApiResponse(responseCode = "201", description = "Coordinates created", useReturnTypeSchema = true,
+            headers = @Header(name = "Location", description = "URI of the created coordinates", schema = @Schema(type = "string", format = "uri")))
     public ResponseEntity<CoordinatesResponse> create(@Valid @RequestBody CoordinatesCreateRequest request) {
         CoordinatesResponse response = service.create(request);
 
@@ -49,27 +62,52 @@ public class CoordinatesController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Get coordinates by id")
-    public CoordinatesResponse getById(@PathVariable @Positive Integer id) {
+    @ApiResponse(responseCode = "200", description = "Coordinates found", useReturnTypeSchema = true)
+    @Operation(summary = "Get coordinates by id", description = "Returns the stored coordinates with the requested id.", responses = {
+            @ApiResponse(responseCode = "400", description = "Invalid coordinates id; must be a positive int32 value",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Coordinates not found",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
+    public CoordinatesResponse getById(@Parameter(description = "Coordinates id", example = "1", schema = @Schema(minimum = "1")) @PathVariable @Positive Integer id) {
         return service.getById(id);
     }
 
     @GetMapping
-    @Operation(summary = "Get all coordinates")
+    @ApiResponse(responseCode = "200", description = "Coordinates collection", useReturnTypeSchema = true)
+    @Operation(summary = "Get all coordinates", description = "Returns a JSON array; an empty collection returns [].")
     public List<CoordinatesResponse> getAll() {
         return service.getAll();
     }
 
-    @Operation(summary = "Update coordinates")
+    @ApiResponse(responseCode = "200", description = "Coordinates updated", useReturnTypeSchema = true)
+    @Operation(summary = "Update coordinates", description = "Fully replaces x and y. Both coordinates are required finite numbers; x must be strictly greater than -999. The id is preserved.", responses = {
+            @ApiResponse(responseCode = "400", description = "Invalid coordinates id; must be a positive int32 value or malformed JSON body",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Coordinates not found",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "415", description = "Unsupported request content type",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "Request fields violate validation constraints",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public CoordinatesResponse update(@PathVariable @Positive Integer id, @Valid @RequestBody CoordinatesUpdateRequest request) {
+    public CoordinatesResponse update(@Parameter(description = "Coordinates id", example = "1", schema = @Schema(minimum = "1")) @PathVariable @Positive Integer id, @Valid @RequestBody CoordinatesUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Delete coordinates")
-    public void delete(@PathVariable @Positive Integer id) {
+    @ApiResponse(responseCode = "204", description = "Coordinates deleted", content = @Content)
+    @Operation(summary = "Delete coordinates", description = "Deletion is rejected while tickets reference this coordinates.", responses = {
+            @ApiResponse(responseCode = "400", description = "Invalid coordinates id; must be a positive int32 value",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Coordinates not found",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Tickets reference this coordinates",
+                    content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
+    public void delete(@Parameter(description = "Coordinates id", example = "1", schema = @Schema(minimum = "1")) @PathVariable @Positive Integer id) {
         service.delete(id);
     }
 }

@@ -17,6 +17,7 @@ import me.ifmo.ticket_service.application.TicketService;
 import me.ifmo.ticket_service.web.error.exceptions.InvalidRequestException;
 import me.ifmo.ticket_service.web.request.TicketCreateRequest;
 import me.ifmo.ticket_service.web.request.TicketFilterRequest;
+import me.ifmo.ticket_service.web.request.TicketPatchSchema;
 import me.ifmo.ticket_service.web.request.TicketUpdateRequest;
 import me.ifmo.ticket_service.web.response.ApiErrorResponse;
 import me.ifmo.ticket_service.web.response.EventTicketCountResponse;
@@ -86,26 +87,26 @@ public class TicketController {
 
     @GetMapping("/{id}")
     @ApiResponse(responseCode = "200", description = "Ticket found", useReturnTypeSchema = true)
-    @Operation(summary = "Get a ticket by id", responses = {
+    @Operation(summary = "Get a ticket by id", description = "Returns the ticket with its coordinates and event.", responses = {
             @ApiResponse(responseCode = "400", description = "Invalid ticket id",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Ticket not found",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public TicketResponse getById(@PathVariable @Positive Long id) {
+    public TicketResponse getById(@Parameter(description = "Ticket id", example = "105", schema = @Schema(minimum = "1")) @PathVariable @Positive Long id) {
         return service.getById(id);
     }
 
     @GetMapping
     @ApiResponse(responseCode = "200", description = "Ticket page", useReturnTypeSchema = true)
-    @Operation(summary = "Get a page of tickets", description = "Filters use exact equality and are combined with AND. Dates use ISO-8601; creationDate is UTC. Sort fields are applied in the specified order; id is added as a final tie-breaker unless explicitly supplied.", responses = {
+    @Operation(summary = "Get a page of tickets", description = "All supplied filters use exact equality and are combined with AND. commentIsNull and eventDateIsNull select null or non-null values. Dates use ISO-8601; creationDate is UTC without an offset. Each query parameter may occur once. Unknown parameters are rejected. Sort fields are applied in the specified order; id is added as a final tie-breaker unless supplied. Example: /tickets?type=VIP&eventId=15&page=0&size=20&sort=price,desc;name,asc. Page numbers are zero-based; an empty result has content: [], elements: 0 and pages: 0.", responses = {
             @ApiResponse(responseCode = "400", description = "Unknown, repeated or invalid filter, page, size or sort parameter",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     public TicketPageResponse getAll(
             @Valid @ModelAttribute @ParameterObject TicketFilterRequest filter,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @Parameter(description = "Zero-based page number", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "Page size, from 1 to 100", example = "20") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @Parameter(description = "One or more field,direction pairs separated by semicolons. Direction is asc or desc; omitted direction means asc. Fields: id, name, coordinatesId, x, y, creationDate, price, comment, type, eventId, eventName, eventDate, eventType", example = "price,desc;name,asc")
             @RequestParam(defaultValue = "id,asc") String sort,
             @Parameter(hidden = true) @RequestParam MultiValueMap<String, String> parameters
@@ -128,7 +129,7 @@ public class TicketController {
             @ApiResponse(responseCode = "422", description = "Request fields violate validation constraints",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public TicketResponse update(@PathVariable @Positive Long id, @Valid @RequestBody TicketUpdateRequest request) {
+    public TicketResponse update(@Parameter(description = "Ticket id", example = "105", schema = @Schema(minimum = "1")) @PathVariable @Positive Long id, @Valid @RequestBody TicketUpdateRequest request) {
         return service.update(id, request);
     }
 
@@ -145,22 +146,26 @@ public class TicketController {
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(
-            schema = @Schema(type = "object"),
-            examples = @ExampleObject(value = "{\"price\": 1500, \"comment\": null}")))
-    public TicketResponse patch(@PathVariable @Positive Long id, @RequestBody JsonNode changes) {
+            schema = @Schema(implementation = TicketPatchSchema.class),
+            examples = {
+                    @ExampleObject(name = "Change price", value = "{\"price\": 1500}"),
+                    @ExampleObject(name = "Clear comment", value = "{\"comment\": null}"),
+                    @ExampleObject(name = "Change references", value = "{\"coordinatesId\": 1, \"eventId\": 15}")
+            }))
+    public TicketResponse patch(@Parameter(description = "Ticket id", example = "105", schema = @Schema(minimum = "1")) @PathVariable @Positive Long id, @RequestBody JsonNode changes) {
         return service.patch(id, changes);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @ApiResponse(responseCode = "204", description = "Ticket deleted", content = @Content)
-    @Operation(summary = "Delete a ticket", responses = {
+    @Operation(summary = "Delete a ticket", description = "Deletes only the ticket; its coordinates and event are preserved. Bookings are owned by Booking Service and are not deleted by this endpoint.", responses = {
             @ApiResponse(responseCode = "400", description = "Invalid ticket id",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Ticket not found",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public void delete(@PathVariable @Positive Long id) {
+    public void delete(@Parameter(description = "Ticket id", example = "105", schema = @Schema(minimum = "1")) @PathVariable @Positive Long id) {
         service.delete(id);
     }
 
@@ -172,11 +177,12 @@ public class TicketController {
             @ApiResponse(responseCode = "404", description = "Event not found",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public TicketsByEventDeleteResponse deleteByEvent(@PathVariable @Positive Integer eventId) {
+    public TicketsByEventDeleteResponse deleteByEvent(@Parameter(description = "Event id", example = "15", schema = @Schema(minimum = "1")) @PathVariable @Positive Integer eventId) {
         return service.deleteByEvent(eventId);
     }
 
     @GetMapping("/price/sum")
+    @ApiResponse(responseCode = "200", description = "Sum of ticket prices", useReturnTypeSchema = true)
     @Operation(summary = "Get the sum of all ticket prices", description = "An empty collection returns zero.")
     public TicketPriceSumResponse sumPrice() {
         return new TicketPriceSumResponse(service.sumPrice());
@@ -184,13 +190,13 @@ public class TicketController {
 
     @GetMapping("/count-by-event/{eventId}")
     @ApiResponse(responseCode = "200", description = "Ticket count for the event", useReturnTypeSchema = true)
-    @Operation(summary = "Count tickets of an event", responses = {
+    @Operation(summary = "Count tickets of an event", description = "The event must exist. An existing event with no tickets returns a zero count.", responses = {
             @ApiResponse(responseCode = "400", description = "Invalid event id",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Event not found",
                     content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public EventTicketCountResponse countByEvent(@PathVariable @Positive Integer eventId) {
+    public EventTicketCountResponse countByEvent(@Parameter(description = "Event id", example = "15", schema = @Schema(minimum = "1")) @PathVariable @Positive Integer eventId) {
         return new EventTicketCountResponse(eventId, service.countByEvent(eventId));
     }
 
